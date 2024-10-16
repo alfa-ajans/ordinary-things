@@ -1,6 +1,7 @@
 import os
 import aiohttp
 import asyncio
+import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import re
@@ -12,15 +13,30 @@ from termcolor import colored
 figlet = Figlet(font='slant')
 print(colored(figlet.renderText('ALFA AJANS'), 'cyan'))
 
-album_input_url = input(colored("Enter album URL (example: https://XXX.x.yupoo.com/albums?tab=gallery or https://XXX.x.yupoo.com/albums/171027864?uid=1): ", 'yellow'))
+# Birden fazla albüm linki alma özelliği ekleniyor
+albums_input = []
+print(colored("Enter album URLs one by one (type 'q' to finish):", 'yellow'))
+while True:
+    album_url = input()
+    if album_url.lower() == 'q':
+        break
+    albums_input.append(album_url)
 
 main_folder = "yupoo_albums"
 os.makedirs(main_folder, exist_ok=True)
 
+# Headers ekliyoruz (senin sağladığın bilgilerle güncelledim)
 headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36",
-    "Referer": album_input_url
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+    "Referer": "https://brandgift.x.yupoo.com",  # Albüm URL'lerini Referer olarak kullandım
+    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Cookie": "ar_debug=1"  # Sağladığın cookie değerini ekledim
 }
+
+# requests.Session() oluşturuyoruz
+session = requests.Session()
 
 def sanitize_folder_name(folder_name):
     return re.sub(r'[<>:"/\\|?*]', '', folder_name)
@@ -74,12 +90,12 @@ async def download_single_album(album_url):
             if response.status == 200:
                 html_content = await response.text()
                 soup = BeautifulSoup(html_content, 'html.parser')
-                album_title = soup.find('title').text.strip()
+                album_title = soup.find('title').text.strip()  # Albüm başlığı alınıyor
                 album_folder = os.path.join(main_folder, sanitize_folder_name(album_title))
                 os.makedirs(album_folder, exist_ok=True)
                 await get_media(session, album_url, album_folder)
 
-async def count_total_albums(session):
+async def count_total_albums(session, album_input_url):
     total_albums = 0
     page = 1
     print("Counting total albums...")
@@ -100,11 +116,11 @@ async def count_total_albums(session):
 
     return total_albums
 
-async def get_album_links():
+async def get_album_links(album_input_url):
     async with aiohttp.ClientSession() as session:
         subdomain = get_subdomain_from_url(album_input_url)
 
-        total_albums = await count_total_albums(session)
+        total_albums = await count_total_albums(session, album_input_url)
 
         print(f"\nTotal albums: {total_albums}")
 
@@ -140,11 +156,13 @@ async def get_album_links():
                         page += 1
 
 async def main():
-    if "/albums/" in album_input_url and "?uid=" in album_input_url:
-        await download_single_album(album_input_url)
-    elif "/albums?tab=gallery" in album_input_url:
-        await get_album_links()
-    else:
-        print(colored("Invalid URL format! Please provide a URL in the following format:\n1. https://XXX.x.yupoo.com/albums?tab=gallery\n2. https://XXX.x.yupoo.com/albums/171027864?uid=1", "red"))
+    async with aiohttp.ClientSession() as session:
+        for album_url in albums_input:
+            if "/albums/" in album_url and "?uid=" in album_url:
+                await download_single_album(album_url)
+            elif "/albums?tab=gallery" in album_url:
+                await get_album_links(album_url)
+            else:
+                print(colored(f"Invalid URL format for {album_url}!", "red"))
 
 asyncio.run(main())
