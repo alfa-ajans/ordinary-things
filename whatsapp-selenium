@@ -42,6 +42,7 @@ for number in numbers:
             EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/footer/div[1]/div/span/div/div[2]/div[2]'))
         )
         send_button.click()
+        time.sleep(3)
         print(Fore.GREEN + f"{number} numarasına mesaj gönderildi. [SUCCESS]")
         success_count += 1
     except Exception:
@@ -53,3 +54,5 @@ driver.quit()
 print("\nTüm işlemler tamamlandı!")
 print(Fore.GREEN + f"Başarıyla gönderilen mesaj sayısı: {success_count}")
 print(Fore.RED + f"Başarısız olan mesaj sayısı: {fail_count}")
+
+
