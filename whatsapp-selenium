@@ -1,0 +1,55 @@
+import logging
+import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+from colorama import Fore, init
+
+init(autoreset=True)
+os.environ['WDM_LOG_LEVEL'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+logging.getLogger('selenium').setLevel(logging.CRITICAL)
+
+chrome_path = "C:\\Users\\Alfa Ajans\\Desktop\\whatsapp\\App\\Chrome-bin\\chrome.exe"
+options = webdriver.ChromeOptions()
+options.binary_location = chrome_path
+profile_path = "C:\\Users\\Alfa Ajans\\Desktop\\whatsapp\\chrome_profile"
+options.add_argument(f"--user-data-dir={profile_path}")
+
+numbers = []
+print("Numaraları alt alta girin (işlemi başlatmak için 'q' tuşuna basın):")
+while True:
+    num = input("Numara: ")
+    if num.lower() == 'q':
+        break
+    numbers.append(num)
+
+message = input("Gönderilecek mesajı yazın: ")
+success_count = 0
+fail_count = 0
+
+driver = webdriver.Chrome(options=options)
+driver.get("https://web.whatsapp.com")
+
+for number in numbers:
+    driver.get(f"https://web.whatsapp.com/send?phone={number}&text={message}")
+    time.sleep(3)
+    
+    try:
+        send_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="main"]/footer/div[1]/div/span/div/div[2]/div[2]'))
+        )
+        send_button.click()
+        print(Fore.GREEN + f"{number} numarasına mesaj gönderildi. [SUCCESS]")
+        success_count += 1
+    except Exception:
+        print(Fore.RED + f"{number} numarasına mesaj gönderilemedi. [FAIL]")
+        fail_count += 1
+
+driver.quit()
+
+print("\nTüm işlemler tamamlandı!")
+print(Fore.GREEN + f"Başarıyla gönderilen mesaj sayısı: {success_count}")
+print(Fore.RED + f"Başarısız olan mesaj sayısı: {fail_count}")
